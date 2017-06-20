@@ -1,22 +1,150 @@
-# Compiled class file
-*.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+import java.util.*;
+import java.io.*;
+class ParseOne
+{
+	static HashMap<String,Integer> symbolTable = new HashMap<String,Integer>();
+	static String Label,OpCode,Oprand,Line;
+	static int LOCCTR,Location;
+	static Scanner reader;
+	static String[] Op = new String[]{"ADD","AND","COMP","DIV","J","JEQ","JGT","JLT", "JSUB", "LDA", "LDCH", "LDL", "LDX", "MUL", "OR", "RD", "RSUB", "STA", "STCH", "STL", "STX", "SUB", "TD", "TIO", "TIX", "WD" };
+	public static void main(String args[]) throws Exception
+	{
+		try
+		{
+			reader = new Scanner(new File("test.txt"));
+		}catch(Exception e){System.out.println(e.getMessage());}
+		readeNextLine();
+		if(OpCode.equals("START"))
+		{
+			LOCCTR = Integer.parseInt(Oprand,16);
+			Location = LOCCTR;
+		}
+		else
+		{
+			LOCCTR = 0;
+			Location = 0;
+		}
+		while(!OpCode.equals("END"))
+		{
+			Location = LOCCTR;
+			if(!Label.equals(" ") && !Label.equals(""))
+			{
+				if(!symbolTable.containsKey(Label))
+				{
+					symbolTable.put(Label,new Integer(LOCCTR));
+				}
+			}
+			if(isContain(OpCode) || OpCode.equals("WORD"))
+				LOCCTR += 3;
+			else if(OpCode.equals("RESW"))
+				LOCCTR += 3 * Integer.parseInt(Oprand);
+			else if(OpCode.equals("RESB"))
+				LOCCTR += Integer.parseInt(Oprand);
+			else if(OpCode.equals("BYTE"))
+				LOCCTR += FindLength(Oprand);
+			else
+				new Exception("Invalid OpCode");
+			readeNextLine();
+			//System.out.println(LOCCTR+", "+Label+", "+OpCode+", "+Oprand);
+		}
+		//System.out.println("\n"+symbolTable);
+		
+		//parseTwo
+		reader = new Scanner(new File("test.txt"));
+		readeNextLine();
+		while(!OpCode.equals("END"))
+		{
+			if(isContain(OpCode))
+			{
+				String ans = "";
+				switch(OpCode)
+				{
+					case "LDA":
+						ans += "00";
+						String[] arr = Oprand.split(",");
+						int tmp = 0;
+						for(String str : arr)
+							if(!str.equals("X"))
+								tmp += symbolTable.get(str);
+							else
+								tmp += 32768;
+						ans += Integer.toString(tmp,16);
+						break;
+					case "STA":
+						ans += "0c";
+						ans += Integer.toString(symbolTable.get(Oprand),16);
+						break;
+					case "SUB":
+						ans += "1c";
+						break;
+					case "RSUB":
+						ans += "4c0000";
+						break;
+					case "J":
+						ans += "3c"+Integer.toString(symbolTable.get(Oprand),16);
+						break;
+				}
+				System.out.println(Label+"\t"+OpCode+"\t"+Oprand+"\t"+ans.toUpperCase());
+			}
+			else
+			{
+				System.out.println(Label+"\t"+OpCode+"\t"+Oprand+"\t");
+			}
+			readeNextLine();
+		}
+	}
+	
+	static int FindLength(String str)
+	{
+		if(str.length() < 3)
+			return 0;
+		int start,end;
+		int len = 0;
+		start = Oprand.indexOf('\'');
+		end = Oprand.indexOf('\'',start+1);
+		switch(Oprand.charAt(0))
+		{
+			case 'C':
+				len = end - start - 1;
+				break;
+			case 'X':
+				len = (end - start - 1)/2;
+				break;
+		}
+		return len;
+	}
+	
+	static boolean isContain(String str)
+	{
+		for(int i = 0;i < Op.length;i++)
+		{
+			if(str.equals(Op[i]))
+				return true;
+		}
+		return false;
+	}
+	
+	static boolean readeNextLine()
+	{
+		Line = reader.nextLine();
+		String[] spi = Line.split("\t");
+		if(Line.equals(""))
+			return false;
+		else
+		{
+			if(spi.length == 3)
+			{
+				Label = spi[0];
+				OpCode = spi[1];
+				Oprand = spi[2];
+			}
+			else if(spi.length == 4)
+			{
+				Label = spi[1];
+				OpCode = spi[2];
+				Oprand = spi[3];
+			}
+		}
+			return true;
+	}
+}
